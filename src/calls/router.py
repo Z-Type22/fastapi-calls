@@ -17,8 +17,12 @@ from src.users.models import User
 router = APIRouter()
 
 @router.post("/offer")
-async def offer(request: Request):
-    return await set_offer(request)
+async def offer(
+    request: Request, 
+    user: User = Depends(authorize),
+    db: AsyncSession = Depends(get_db),
+):
+    return await set_offer(request, user, db)
 
 @router.post("/create", response_model=CallRead)
 async def create(

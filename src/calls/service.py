@@ -11,8 +11,27 @@ from src.calls.models import Call
 relay: MediaRelay = MediaRelay()
 rooms: dict[str, list] = {}
 
-async def set_offer(request: Request):
+async def set_offer(
+    request: Request, user: User, db: AsyncSession
+):
     data = await request.json()
+    call_id = data["call_id"]
+
+    result = await db.execute(
+        select(Call).where(Call.uuid == call_id)
+    )
+    call = result.scalar_one_or_none()
+
+    if call is None:
+        raise HTTPException(
+            status_code=404, detail="Call not found"
+        )
+
+    if user.id not in [call.callee_id, call.caller_id]:
+        raise HTTPException(
+            status_code=403, detail="Forbidden."
+        )
+
     call_id = data["call_id"]
 
     pc = RTCPeerConnection()
