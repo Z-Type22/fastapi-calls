@@ -6,6 +6,7 @@ from fastapi import Request, HTTPException
 from src.users.models import User
 from src.calls.schemas import CallCreate
 from src.calls.models import Call
+from src.calls.denoise import FrameSplitterTrack
 
 
 relay: MediaRelay = MediaRelay()
@@ -32,8 +33,6 @@ async def set_offer(
             status_code=403, detail="Forbidden."
         )
 
-    call_id = data["call_id"]
-
     pc = RTCPeerConnection()
 
     audio_transceiver = pc.addTransceiver(
@@ -55,6 +54,7 @@ async def set_offer(
 
         print(f"[{call_id}] audio track received")
 
+        track = FrameSplitterTrack(track)
         relayed = relay.subscribe(track)
 
         for peer in rooms[call_id]:
