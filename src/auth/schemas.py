@@ -8,7 +8,6 @@ class UserCreate(BaseModel):
     password1: str = Field(..., min_length=8)
     password2: str = Field(..., min_length=8)
     gender: User.Gender | None = None
-    avatar: str | None = None
 
     @field_validator("password2")
     def passwords_match(cls, value, info):

@@ -6,7 +6,7 @@ from datetime import datetime
 
 class CallRead(BaseModel):
     id: int
-    caller_id: int
+    caller: UserRead
     callees: List[UserRead]
     created_at: datetime
     is_private: bool
