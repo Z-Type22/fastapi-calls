@@ -45,7 +45,8 @@ async def create_user(user: UserCreate, db: AsyncSession):
         username=user.username,
         email=user.email,
         password=get_password_hash(user.password1),
-        avatar=user.avatar
+        avatar=user.avatar,
+        gender=user.gender
     )
 
     db.add(new_user)

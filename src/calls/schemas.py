@@ -1,23 +1,25 @@
 from pydantic import BaseModel
-from src.calls.models import Call
+from src.users.schemas import UserRead
+from typing import List
 from datetime import datetime
 
 
 class CallRead(BaseModel):
     id: int
     caller_id: int
-    callee_id: int
-    status: Call.Status
+    callees: List[UserRead]
     created_at: datetime
+    is_private: bool
 
     model_config = {
         "from_attributes": True
     }
 
 
-class CallCreate(BaseModel):
+class CalleeSchema(BaseModel):
+    call_id: int
     callee_id: int
 
 
-class Message(BaseModel):
-    detail: str
+class CallCreate(BaseModel):
+    is_private: bool

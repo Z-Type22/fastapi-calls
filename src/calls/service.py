@@ -1,12 +1,14 @@
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 from fastapi import Request, HTTPException
 from src.users.models import User
-from src.calls.schemas import CallCreate
 from src.calls.models import Call
 from src.calls.denoise import FrameSplitterTrack
+from src.calls.schemas import CalleeSchema, CallCreate
+from src.calls.utils import get_user_and_call
 
 
 relay: MediaRelay = MediaRelay()
@@ -28,7 +30,7 @@ async def set_offer(
             status_code=404, detail="Call not found"
         )
 
-    if user.id not in [call.callee_id, call.caller_id]:
+    if user.id != call.caller_id and user not in call.callees:
         raise HTTPException(
             status_code=403, detail="Forbidden."
         )
@@ -76,29 +78,18 @@ async def set_offer(
         "type": pc.localDescription.type
     }
 
-async def create_call(
-    call: CallCreate, user: User, db: AsyncSession
-):
+async def get_my_calls(user: User, db: AsyncSession):
     result = await db.execute(
-        select(User).where(User.id == call.callee_id)
+        select(Call).where(Call.caller_id == user.id)
+        .options(selectinload(Call.callees))
     )
-    callee = result.scalar_one_or_none()
+    calls = result.scalars().all()
+    return calls
 
-    if not callee:
-        raise HTTPException(
-            status_code=404, detail="User not found"
-        )
-
-    if call.callee_id == user.id:
-        raise HTTPException(
-            status_code=403, detail="You cannot call yourself."
-        )
-    
-    call = Call(
-        caller_id=user.id,
-        callee_id=call.callee_id,
-        status=Call.Status.RINGING,
-    )
+async def create_call(
+    data: CallCreate, user: User, db: AsyncSession
+):    
+    call = Call(caller_id=user.id, is_private=data.is_private)
 
     db.add(call)
     await db.commit()
@@ -106,64 +97,28 @@ async def create_call(
 
     return call
 
-async def accepting_call(
-    call_id: int, user: User, 
-    db: AsyncSession, accept: bool
+async def add_user_to_call(
+    data: CalleeSchema, user: User, db: AsyncSession
 ):
-    result = await db.execute(
-        select(Call).where(
-            Call.id == call_id,
-            Call.status.in_([
-                Call.Status.CREATED,
-                Call.Status.RINGING,
-            ])
-        )
-    )
-    call = result.scalar_one_or_none()
-
-    if not call:
-        raise HTTPException(
-            status_code=404, detail="Call not found"
-        )
+    callee, call = await get_user_and_call(data, user, db)
     
-    if call.callee_id != user.id:
-        raise HTTPException(
-            status_code=403, detail="Forbidden"
-        )
-    
-    if accept:
-        call.status = Call.Status.ACCEPTED
-        status = "accepted"
-    else:
-        call.status = Call.Status.REJECTED
-        status = "rejected"
+    if callee not in call.callees:
+        call.callees.append(callee)
+        db.add(call)
+        await db.commit()
+        await db.refresh(call)
 
-    await db.commit()
+    return call
 
-    return {"detail": f"Call {status}"}
-
-async def end_call(
-    call_id: int, user: User, db: AsyncSession,
+async def remove_user_from_call(
+    data: CalleeSchema, user: User, db: AsyncSession
 ):
-    result = await db.execute(
-        select(Call).where(
-            Call.id == call_id,
-            Call.status.in_([Call.Status.ACCEPTED])
-        )
-    )
-    call = result.scalar_one_or_none()
-
-    if not call:
-        raise HTTPException(
-            status_code=404, detail="Call not found"
-        )
+    callee, call = await get_user_and_call(data, user, db)
     
-    if user.id not in [call.callee_id, call.caller_id]:
-        raise HTTPException(
-            status_code=403, detail="Forbidden"
-        )
-    
-    call.status = Call.Status.ENDED
-    await db.commit()
+    if callee in call.callees:
+        call.callees.remove(callee)
+        db.add(call)
+        await db.commit()
+        await db.refresh(call)
 
-    return {"detail": "Call ended."}
+    return call
