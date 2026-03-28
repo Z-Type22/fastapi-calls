@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field, BaseModel
 from pathlib import Path
+from fastapi_csrf_protect import CsrfProtect
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,6 +34,8 @@ class Settings(BaseSettings):
     db_user: str = Field(..., env="DB_USER")
     db_password: str = Field(..., env="DB_PASSWORD")
 
+    csrf_token: str = Field(..., env="CSRF_TOKEN")
+
     auth_jwt: AuthJWT = AuthJWT()
     cookies: Cookies = Cookies()
 
@@ -54,3 +57,14 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+class CsrfSettings(BaseSettings):
+    secret_key: str = settings.csrf_token
+    cookie_samesite: str = "lax"
+    cookie_key: str = "csrftoken"
+    header_name: str = "X-CSRF-Token"
+
+
+@CsrfProtect.load_config
+def get_csrf_config():
+    return CsrfSettings()

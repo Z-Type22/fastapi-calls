@@ -4,10 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.calls.router import router as calls_router
 from src.users.router import router as users_router
 from src.auth.router import router as auth_router
+from src.middlewares import CSRFMiddleware
 
 
 app = FastAPI()
 
+app.add_middleware(CSRFMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
