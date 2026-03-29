@@ -44,7 +44,8 @@ async def set_offer(
 
     rooms.setdefault(call_id, []).append({
         "pc": pc,
-        "transceiver": audio_transceiver
+        "transceiver": audio_transceiver,
+        "user_id": user.id
     })
 
     print(f"[{call_id}] peer connected, total:", len(rooms[call_id]))
@@ -77,6 +78,40 @@ async def set_offer(
         "sdp": pc.localDescription.sdp,
         "type": pc.localDescription.type
     }
+
+async def remove_peer_service(request: Request, user: User):
+    data = await request.json()
+    call_id = data["call_id"]
+
+    if call_id in rooms:
+        peer_to_remove = None
+
+        for peer in rooms[call_id]:
+            if peer["user_id"] == user.id:
+                peer_to_remove = peer
+                break
+
+        if peer_to_remove:
+            pc = peer_to_remove["pc"]
+
+            for peer in rooms[call_id]:
+                if peer["pc"] != pc:
+                    peer["transceiver"].sender.replaceTrack(None)
+
+            rooms[call_id] = [
+                peer for peer in rooms[call_id]
+                if peer["pc"] != pc
+            ]
+
+            print(f"[{call_id}] peer disconnected, remaining:", len(rooms[call_id]))
+
+            if not rooms[call_id]: del rooms[call_id]
+
+            await pc.close()
+
+            return {"detail": "Success."}
+    
+    raise HTTPException(detail="Peer not found.", status_code=404)
 
 async def get_my_calls(user: User, db: AsyncSession):
     result = await db.execute(

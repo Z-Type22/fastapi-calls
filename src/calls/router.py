@@ -7,10 +7,11 @@ from src.calls.service import (
     get_my_calls,
     create_call,
     add_user_to_call,
-    remove_user_from_call
+    remove_user_from_call,
+    remove_peer_service
 )
 from src.calls.schemas import (
-    CallRead, CalleeSchema, CallCreate
+    CallRead, CalleeSchema, CallCreate, Message
 )
 from src.users.models import User
 
@@ -55,3 +56,9 @@ async def offer(
     db: AsyncSession = Depends(get_db),
 ):
     return await set_offer(request, user, db)
+
+@router.post("/remove_peer", response_model=Message)
+async def remove_peer(
+    request: Request, user: User = Depends(authorize),
+):
+    return await remove_peer_service(request, user)

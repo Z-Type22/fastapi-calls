@@ -23,3 +23,7 @@ class CalleeSchema(BaseModel):
 
 class CallCreate(BaseModel):
     is_private: bool
+
+
+class Message(BaseModel):
+    detail: str
