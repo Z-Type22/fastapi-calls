@@ -22,6 +22,10 @@ router = APIRouter()
 async def read_users(db: AsyncSession = Depends(get_db)):
     return await get_users(db)
 
+@router.get("/me", response_model=UserRead)
+async def my_profile(user: User = Depends(authorize)):
+    return user
+
 @router.get("/search", response_model=list[UserRead])
 async def search_users(
     q: str = Query(..., min_length=1, description="Поиск по username"),

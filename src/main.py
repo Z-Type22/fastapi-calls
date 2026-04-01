@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from src.calls.router import router as calls_router
@@ -20,6 +20,10 @@ app.add_middleware(
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
-app.include_router(calls_router, prefix="/calls", tags=["Calls"])
-app.include_router(users_router, prefix="/users", tags=["Users"])
-app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+api_v1_router = APIRouter(prefix="/api/v1")
+
+api_v1_router.include_router(calls_router, prefix="/calls", tags=["Calls"])
+api_v1_router.include_router(users_router, prefix="/users", tags=["Users"])
+api_v1_router.include_router(auth_router, prefix="/auth", tags=["Auth"])
+
+app.include_router(api_v1_router)
