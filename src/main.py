@@ -1,5 +1,8 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import (
+    FastAPI, APIRouter, Depends, Response
+)
 from fastapi.staticfiles import StaticFiles
+from fastapi_csrf_protect import CsrfProtect
 from fastapi.middleware.cors import CORSMiddleware
 from src.calls.router import router as calls_router
 from src.users.router import router as users_router
@@ -21,6 +24,17 @@ app.add_middleware(
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
 api_v1_router = APIRouter(prefix="/api/v1")
+
+@api_v1_router.get("/csrf-token")
+def get_csrf_token(
+    response: Response,
+    csrf_protect: CsrfProtect = Depends()
+):
+    csrf_token, signed_token = csrf_protect.generate_csrf_tokens()
+    csrf_protect.set_csrf_cookie(
+        signed_token, response
+    )
+    return {"csrf_token": csrf_token}
 
 api_v1_router.include_router(calls_router, prefix="/calls", tags=["Calls"])
 api_v1_router.include_router(users_router, prefix="/users", tags=["Users"])

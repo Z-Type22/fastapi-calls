@@ -62,7 +62,7 @@ class CsrfSettings(BaseSettings):
     secret_key: str = settings.csrf_token
     cookie_samesite: str = "lax"
     cookie_key: str = "csrftoken"
-    header_name: str = "X-CSRF-Token"
+    header_name: str = "x-csrf-token"
 
 
 @CsrfProtect.load_config
