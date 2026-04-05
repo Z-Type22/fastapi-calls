@@ -7,7 +7,7 @@ from fastapi import Request, HTTPException
 from src.users.models import User
 from src.calls.models import Call
 from src.calls.denoise import FrameSplitterTrack
-from src.calls.schemas import CalleeSchema, CallCreate
+from src.calls.schemas import CalleeSchema
 from src.calls.utils import get_user_and_call
 
 
@@ -121,16 +121,52 @@ async def get_my_calls(user: User, db: AsyncSession):
     calls = result.scalars().all()
     return calls
 
-async def create_call(
-    data: CallCreate, user: User, db: AsyncSession
+async def get_call(
+    call_id: int, user: User, db: AsyncSession      
+):
+    result = await db.execute(
+        select(Call).where(
+            Call.caller_id == user.id,
+            Call.id == call_id
+        ).options(selectinload(Call.callees))
+    )
+    call = result.scalar_one_or_none()
+    if not call:
+        raise HTTPException(
+            detail="Call not found.", status_code=404
+        )
+    return call
+
+async def create_call_service(
+    user: User, db: AsyncSession
 ):    
-    call = Call(caller_id=user.id, is_private=data.is_private)
+    call = Call(caller_id=user.id)
 
     db.add(call)
     await db.commit()
     await db.refresh(call)
 
     return call
+
+async def delete_call_service(
+    call_id: int, user: User, db: AsyncSession
+):
+    result = await db.execute(
+        select(Call).where(
+            Call.id == call_id,
+            Call.caller_id == user.id
+        )
+    )
+    call = result.scalar_one_or_none()
+    if not call:
+        raise HTTPException(
+            detail="Call not found.", status_code=404
+        )
+
+    await db.delete(call)
+    await db.commit()
+
+    return {"detail": "Success."}
 
 async def add_user_to_call(
     data: CalleeSchema, user: User, db: AsyncSession

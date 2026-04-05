@@ -6,8 +6,7 @@ from sqlalchemy import (
     String,
     ForeignKey,
     DateTime,
-    Table,
-    Boolean
+    Table
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -60,7 +59,6 @@ class Call(Base):
         backref="incoming_calls",
         lazy="noload",
     )
-    is_private = Column(Boolean, default=False, nullable=False)
 
     def can_join(self, user: User) -> bool:
         return (

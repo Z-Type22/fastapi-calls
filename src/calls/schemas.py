@@ -9,7 +9,6 @@ class CallRead(BaseModel):
     caller: UserRead
     callees: List[UserRead]
     created_at: datetime
-    is_private: bool
 
     model_config = {
         "from_attributes": True
@@ -19,10 +18,6 @@ class CallRead(BaseModel):
 class CalleeSchema(BaseModel):
     call_id: int
     callee_id: int
-
-
-class CallCreate(BaseModel):
-    is_private: bool
 
 
 class Message(BaseModel):

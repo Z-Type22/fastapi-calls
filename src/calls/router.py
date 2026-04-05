@@ -5,13 +5,15 @@ from src.database import get_db
 from src.calls.service import (
     set_offer,
     get_my_calls,
-    create_call,
+    create_call_service,
     add_user_to_call,
     remove_user_from_call,
-    remove_peer_service
+    remove_peer_service,
+    get_call,
+    delete_call_service
 )
 from src.calls.schemas import (
-    CallRead, CalleeSchema, CallCreate, Message
+    CallRead, CalleeSchema, Message
 )
 from src.users.models import User
 
@@ -25,13 +27,28 @@ async def read_calls(
 ):
     return await get_my_calls(user, db)
 
-@router.post("/create", response_model=CallRead)
-async def create(
-    data: CallCreate,
+@router.get("/{call_id}", response_model=CallRead)
+async def retrieve_call(
+    call_id: int,
+    user: User = Depends(authorize),
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_call(call_id, user, db)
+
+@router.post("/", response_model=CallRead)
+async def create_call(
     user: User = Depends(authorize),
     db: AsyncSession = Depends(get_db),
 ):
-    return await create_call(data, user, db)
+    return await create_call_service(user, db)
+
+@router.delete("/{call_id}", response_model=Message)
+async def delete_call(
+    call_id: int,
+    user: User = Depends(authorize),
+    db: AsyncSession = Depends(get_db)
+):
+    return await delete_call_service(call_id, user, db)
 
 @router.post("/add_callee", response_model=CallRead)
 async def add_callee(
