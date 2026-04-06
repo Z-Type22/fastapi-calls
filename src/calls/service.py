@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from src.users.models import User
 from src.calls.models import Call
 from src.calls.denoise import FrameSplitterTrack
-from src.calls.schemas import CalleeSchema
+from src.calls.schemas import CalleeSchema, CallCreate
 from src.calls.utils import get_user_and_call
 
 
@@ -122,6 +122,18 @@ async def get_my_calls(user: User, db: AsyncSession):
     calls = result.scalars().all()
     return calls
 
+async def get_connected_calls(user: User, db: AsyncSession):
+    result = await db.execute(
+        select(Call)
+        .options(
+            selectinload(Call.callees),
+            selectinload(Call.caller)
+        )
+        .where(Call.callees.any(id=user.id))
+    )
+    calls = result.scalars().all()
+    return calls
+
 async def get_call(
     call_id: int, user: User, db: AsyncSession      
 ):
@@ -139,9 +151,9 @@ async def get_call(
     return call
 
 async def create_call_service(
-    user: User, db: AsyncSession
+    data: CallCreate, user: User, db: AsyncSession
 ):    
-    call = Call(caller_id=user.id)
+    call = Call(caller_id=user.id, title=data.title)
 
     db.add(call)
     await db.commit()

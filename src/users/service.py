@@ -7,8 +7,17 @@ from pathlib import Path
 import shutil
 
 
-async def get_users(user: User, db: AsyncSession):
-    result = await db.execute(select(User).where(User.id != user.id))
+async def get_users(
+    user: User, db: AsyncSession, 
+    page: int, limit: int
+):
+    offset = (page - 1) * limit
+    result = await db.execute(
+        select(User)
+        .where(User.id != user.id)
+        .offset(offset)
+        .limit(limit)
+    )
     return result.scalars().all()
 
 async def get_search_users(q: str, user: User, db: AsyncSession):

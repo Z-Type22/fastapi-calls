@@ -21,8 +21,11 @@ router = APIRouter()
 @router.get("/", response_model=list[UserRead])
 async def read_users(
     user: User = Depends(authorize), 
-    db: AsyncSession = Depends(get_db)):
-    return await get_users(user, db)
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    limit: int = Query(5, ge=1, le=5)
+):
+    return await get_users(user, db, page, limit)
 
 @router.get("/me", response_model=UserRead)
 async def my_profile(user: User = Depends(authorize)):

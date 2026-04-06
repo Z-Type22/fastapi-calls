@@ -10,10 +10,11 @@ from src.calls.service import (
     remove_user_from_call,
     remove_peer_service,
     get_call,
-    delete_call_service
+    delete_call_service,
+    get_connected_calls
 )
 from src.calls.schemas import (
-    CallRead, CalleeSchema, Message
+    CallRead, CalleeSchema, Message, CallCreate
 )
 from src.users.models import User
 
@@ -27,6 +28,13 @@ async def read_calls(
 ):
     return await get_my_calls(user, db)
 
+@router.get("/connected", response_model=list[CallRead])
+async def connected_calls(
+    user: User = Depends(authorize),
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_connected_calls(user, db)
+
 @router.get("/{call_id}", response_model=CallRead)
 async def retrieve_call(
     call_id: int,
@@ -37,10 +45,11 @@ async def retrieve_call(
 
 @router.post("/", response_model=CallRead)
 async def create_call(
+    data: CallCreate,
     user: User = Depends(authorize),
     db: AsyncSession = Depends(get_db),
 ):
-    return await create_call_service(user, db)
+    return await create_call_service(data, user, db)
 
 @router.delete("/{call_id}", response_model=Message)
 async def delete_call(

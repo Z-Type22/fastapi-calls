@@ -42,6 +42,10 @@ class Call(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    title = Column(
+        String,
+        nullable=True
+    )
     uuid = Column(
         String,
         default=lambda: str(uuid.uuid4()),
