@@ -19,8 +19,10 @@ from src.auth.jwt_service import authorize
 router = APIRouter()
 
 @router.get("/", response_model=list[UserRead])
-async def read_users(db: AsyncSession = Depends(get_db)):
-    return await get_users(db)
+async def read_users(
+    user: User = Depends(authorize), 
+    db: AsyncSession = Depends(get_db)):
+    return await get_users(user, db)
 
 @router.get("/me", response_model=UserRead)
 async def my_profile(user: User = Depends(authorize)):
@@ -29,9 +31,10 @@ async def my_profile(user: User = Depends(authorize)):
 @router.get("/search", response_model=list[UserRead])
 async def search_users(
     q: str = Query(..., min_length=1, description="Поиск по username"),
+    user: User = Depends(authorize),
     db: AsyncSession = Depends(get_db),
 ):
-    return await get_search_users(q, db)
+    return await get_search_users(q, user, db)
 
 @router.post("/upload_avatar")
 async def upload_avatar(

@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
 from src.users.models import User
 from src.calls.models import Call
 from src.calls.denoise import FrameSplitterTrack
@@ -173,11 +174,15 @@ async def add_user_to_call(
 ):
     callee, call = await get_user_and_call(data, user, db)
     
-    if callee not in call.callees:
-        call.callees.append(callee)
-        db.add(call)
-        await db.commit()
-        await db.refresh(call)
+    if callee in call.callees:
+        return JSONResponse(
+            content={"detail": "User already in call"}, status_code=208
+        )
+
+    call.callees.append(callee)
+    db.add(call)
+    await db.commit()
+    await db.refresh(call)
 
     return call
 

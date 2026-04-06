@@ -7,12 +7,12 @@ from pathlib import Path
 import shutil
 
 
-async def get_users(db: AsyncSession):
-    result = await db.execute(select(User))
+async def get_users(user: User, db: AsyncSession):
+    result = await db.execute(select(User).where(User.id != user.id))
     return result.scalars().all()
 
-async def get_search_users(q: str, db: AsyncSession):
-    stmt = select(User).where(User.username.ilike(f"%{q}%"))
+async def get_search_users(q: str, user: User, db: AsyncSession):
+    stmt = select(User).where(User.username.ilike(f"%{q}%"), User.id != user.id)
     result = await db.execute(stmt)
     users = result.scalars().all()
     return users

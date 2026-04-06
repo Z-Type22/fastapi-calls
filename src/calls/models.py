@@ -6,7 +6,8 @@ from sqlalchemy import (
     String,
     ForeignKey,
     DateTime,
-    Table
+    Table,
+    desc
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -30,6 +31,12 @@ class Call(Base):
             Integer,
             ForeignKey("users.id", ondelete="CASCADE"),
             primary_key=True,
+        ),        
+        Column(
+            "created_at",
+            DateTime(timezone=True),
+            server_default=func.now(),
+            nullable=False
         ),
     )
 
@@ -58,6 +65,7 @@ class Call(Base):
         secondary=call_callees,
         backref="incoming_calls",
         lazy="noload",
+        order_by=desc(call_callees.c.created_at)
     )
 
     def can_join(self, user: User) -> bool:
