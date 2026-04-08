@@ -11,9 +11,11 @@ from src.users.models import User
 from src.users.service import (
     get_users, 
     get_search_users,
-    set_avatar
+    set_avatar,
+    get_connected_users
 )
 from src.auth.jwt_service import authorize
+from uuid import UUID
 
 
 router = APIRouter()
@@ -26,6 +28,14 @@ async def read_users(
     limit: int = Query(5, ge=1, le=5)
 ):
     return await get_users(user, db, page, limit)
+
+@router.get("/connected/{call_uuid}", response_model=list[UserRead])
+async def connected_users(
+    call_uuid: str,
+    user: User = Depends(authorize), 
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_connected_users(call_uuid, user, db)
 
 @router.get("/me", response_model=UserRead)
 async def my_profile(user: User = Depends(authorize)):

@@ -33,3 +33,30 @@ async def get_user_and_call(
         )
     
     return callee, call
+
+async def cleanup_peer(rooms, call_id, user_id):
+    if call_id not in rooms: return
+
+    peer_to_remove = None
+    for peer in rooms[call_id]:
+        if peer["user_id"] == user_id:
+            peer_to_remove = peer
+            break
+        
+    if not peer_to_remove: return
+
+    pc = peer_to_remove["pc"]
+
+    for peer in rooms[call_id]:
+        if peer["pc"] != pc:
+            try:
+                peer["transceiver"].sender.replaceTrack(None)
+            except Exception:
+                pass
+
+    rooms[call_id] = [peer for peer in rooms[call_id] if peer["pc"] != pc]
+    if not rooms[call_id]:
+        del rooms[call_id]
+
+    await pc.close()
+    print(f"[{call_id}] peer {user_id} cleaned up")

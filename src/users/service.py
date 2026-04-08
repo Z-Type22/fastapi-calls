@@ -1,7 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.users.models import User
-from sqlalchemy import select
+from sqlalchemy import select, or_
+from sqlalchemy.orm import selectinload
 from fastapi import UploadFile, HTTPException
+from src.calls.service import rooms
+from src.calls.models import Call
 from src.config import settings
 from pathlib import Path
 import shutil
@@ -19,6 +22,42 @@ async def get_users(
         .limit(limit)
     )
     return result.scalars().all()
+
+async def get_connected_users(
+    call_uuid: str, user: User, db: AsyncSession
+):
+    result = await db.execute(
+        select(Call)
+        .options(
+            selectinload(Call.callees),
+            selectinload(Call.caller)
+        )
+        .where(
+            Call.uuid == call_uuid,
+            or_(
+                Call.callees.any(id=user.id),
+                Call.caller_id == user.id
+            )
+        )
+    )
+    call = result.scalar_one_or_none()
+    if not call:
+        raise HTTPException(detail="Call not found.", status_code=404)
+    
+    if call_uuid not in rooms: return []
+
+    user_ids = [
+        item["user_id"]
+        for item in rooms[call_uuid]
+    ]
+
+    if not user_ids: return []
+
+    stmt = select(User).where(User.id.in_(user_ids))
+    result = await db.execute(stmt)
+    users = result.scalars().all()
+
+    return users
 
 async def get_search_users(q: str, user: User, db: AsyncSession):
     stmt = select(User).where(User.username.ilike(f"%{q}%"), User.id != user.id)

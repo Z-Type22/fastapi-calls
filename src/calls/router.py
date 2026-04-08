@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, WebSocket, Depends
 from src.auth.jwt_service import authorize
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_db
@@ -8,10 +8,9 @@ from src.calls.service import (
     create_call_service,
     add_user_to_call,
     remove_user_from_call,
-    remove_peer_service,
     get_call,
     delete_call_service,
-    get_connected_calls
+    get_invited_calls
 )
 from src.calls.schemas import (
     CallRead, CalleeSchema, Message, CallCreate
@@ -28,12 +27,12 @@ async def read_calls(
 ):
     return await get_my_calls(user, db)
 
-@router.get("/connected", response_model=list[CallRead])
-async def connected_calls(
+@router.get("/invited", response_model=list[CallRead])
+async def invited_calls(
     user: User = Depends(authorize),
     db: AsyncSession = Depends(get_db)
 ):
-    return await get_connected_calls(user, db)
+    return await get_invited_calls(user, db)
 
 @router.get("/{call_id}", response_model=CallRead)
 async def retrieve_call(
@@ -75,16 +74,10 @@ async def remove_callee(
 ):
     return await remove_user_from_call(data, user, db)
 
-@router.post("/offer")
+@router.websocket("/offer")
 async def offer(
-    request: Request, 
+    websocket: WebSocket, 
     user: User = Depends(authorize),
     db: AsyncSession = Depends(get_db),
 ):
-    return await set_offer(request, user, db)
-
-@router.post("/remove_peer", response_model=Message)
-async def remove_peer(
-    request: Request, user: User = Depends(authorize),
-):
-    return await remove_peer_service(request, user)
+    return await set_offer(websocket, user, db)
